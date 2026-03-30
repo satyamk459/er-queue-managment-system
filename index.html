@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ER Queue - Clinical Precision</title>
+    <link rel="stylesheet" href="style.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="logo">
+            <span class="logo-red">ER</span>QUEUE
+        </div>
+        <nav class="nav-links">
+            <a href="#home" class="active">Home</a>
+            <a href="#intro">Intro</a>
+            <a href="#datastructures">Data Structures</a>
+            <a href="#algorithms">Algorithms</a>
+            <a href="#simulator">Simulator</a>
+            <a href="#summary">Summary</a>
+        </nav>
+        <button class="btn-dark">Emergency Triage</button>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <!-- Assuming image placeholder, we'll use CSS background -->
+        <div class="hero-content">
+            <div class="hero-left">
+                <p class="subtitle"><i class="ri-heart-pulse-fill"></i> A DSA PROJECT PORTFOLIO</p>
+                <h1 class="main-title">Clinical <br><span class="text-red">Precision</span></h1>
+                <p class="description">
+                    An interactive Emergency Room Patient Queue Management System designed to validate clinical
+                    decision-making using advanced Data Structures and Algorithms.
+                </p>
+                <div class="dev-credits">
+                    <div class="credit-box">
+                        <span class="credit-title">DEVELOPED BY</span>
+                        <span class="credit-name">Satyam Kumar Thakur</span>
+                        <span class="credit-sub">Id-0251CS191</span>
+                    </div>
+                    <div class="credit-box">
+                        <span class="credit-title">MENTORED BY</span>
+                        <span class="credit-name">Mr. Aman Kumar</span>
+                        <span class="credit-sub">Dept. Computer Science</span>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-right">
+                <div class="system-vitals-card">
+                    <div class="sv-header">
+                        <h3>System Vital Signs</h3>
+                        <i class="ri-heart-pulse-line text-red"></i>
+                    </div>
+                    <div class="pulse-graph">
+                        <svg viewBox="0 0 100 20" preserveAspectRatio="none">
+                            <polyline fill="none" stroke="#ce2e35" stroke-width="2"
+                                points="0,10 20,10 25,5 30,15 35,5 40,15 45,10 60,10 65,0 75,20 80,10 100,10" />
+                        </svg>
+                    </div>
+                    <div class="sv-stats">
+                        <div class="stat">
+                            <span class="stat-label">Latency</span>
+                            <span class="stat-value">2.45ms</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Complexity</span>
+                            <span class="stat-value">O(log n)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Critical Nature Section -->
+    <section class="section-light critical-nature" id="intro">
+        <div class="container">
+            <div class="cn-left">
+                <h2>The Critical Nature of <span class="text-red">ER Triage</span></h2>
+                <p class="cn-desc">
+                    In an Emergency Room, the traditional First-Come, First-Served (FCFS) model is not just
+                    inefficient—it's dangerous. A patient with cardiac arrest cannot be prioritized over someone
+                    experiencing a minor injury. Our system leverages Priority Queues to ensure that medical resources
+                    are directed where they are needed most, instantaneously.
+                </p>
+                <div class="cn-cards">
+                    <div class="cn-card">
+                        <div class="icon-box"><i class="ri-drop-fill text-red"></i></div>
+                        <h4>Every Second</h4>
+                        <p>Minimizing wait times for critical patients saves lives.</p>
+                    </div>
+                    <div class="cn-card">
+                        <div class="icon-box"><i class="ri-git-branch-line"></i></div>
+                        <h4>Dynamic Triage</h4>
+                        <p>Real-time re-ranking based on vital updates.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="cn-right">
+                <img src="../../brain/f6cd5be9-fc47-433a-889e-604f3d677c22/doctor_tablet_1774882013907.png"
+                    alt="Doctor looking at tablet" class="doctor-img">
+            </div>
+        </div>
+    </section>
+
+    <!-- Core Data Structures -->
+    <section class="section-light data-structures" id="datastructures">
+        <div class="container section-header center">
+            <span class="small-caps text-red">Concept Details</span>
+            <h2>Core Data Structures</h2>
+        </div>
+        <div class="container ds-grid">
+            <div class="ds-card">
+                <div class="ds-icon bg-red-light text-red"><i class="ri-org-chart"></i></div>
+                <h3>Priority Queue (Min-Heap)</h3>
+                <p>Used for primary triage ordering. Ensures O(log n) insertion and extraction of highest priority
+                    patients.</p>
+                <div class="ds-meta"><span>Insert O(log n)</span> <span>Extract O(log n)</span></div>
+            </div>
+            <div class="ds-card">
+                <div class="ds-icon bg-blue-light text-blue"><i class="ri-refresh-line"></i></div>
+                <h3>Circular Queue</h3>
+                <p>Manages patient inflow for entry-stage level. Handles efficient memory usage for fixed-size waiting
+                    areas.</p>
+                <div class="ds-meta"><span>Enqueue O(1)</span> <span>Dequeue O(1)</span></div>
+            </div>
+            <div class="ds-card">
+                <div class="ds-icon bg-indigo-light text-indigo"><i class="ri-arrow-left-right-line"></i></div>
+                <h3>Doubly Linked List</h3>
+                <p>The master log for all patient histories. Allows O(1) deletion and traversal in any direction without
+                    sequential search.</p>
+                <div class="ds-meta"><span>Append O(1)</span> <span>Delete O(1)</span></div>
+            </div>
+            <div class="ds-card">
+                <div class="ds-icon bg-purple-light text-purple"><i class="ri-hashtag"></i></div>
+                <h3>Hash Table</h3>
+                <p>Instant lookup of patient data using their ID. Confirmed linear search times during critical lookups.
+                </p>
+                <div class="ds-meta"><span>Search O(1)</span> <span>Avg Case O(1)</span></div>
+            </div>
+            <div class="ds-card">
+                <div class="ds-icon bg-teal-light text-teal"><i class="ri-stack-line"></i></div>
+                <h3>Stack</h3>
+                <p>Implements the "undo" functionality for triage actions. Tracks the history of medical decisions.</p>
+                <div class="ds-meta"><span>Push O(1)</span> <span>Pop O(1)</span></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sorting & Searching Logic -->
+    <section class="section-light algorithms" id="algorithms">
+        <div class="container section-header">
+            <h2>Sorting & Searching <span class="text-red">Logic</span></h2>
+            <p>The efficiency of our ER system is powered by these mathematical foundations, optimized for high-density
+                medical data processing.</p>
+        </div>
+        <div class="container alg-grid">
+            <div class="alg-card">
+                <div class="alg-header">
+                    <i class="ri-search-line"></i>
+                    <span class="badge">O(log n)</span>
+                </div>
+                <h3>Binary Search</h3>
+                <p>Efficiency in array traversal without linear sweeping overhead.</p>
+            </div>
+            <div class="alg-card">
+                <div class="alg-header">
+                    <i class="ri-node-tree"></i>
+                    <span class="badge">O(n log n)</span>
+                </div>
+                <h3>Merge Sort</h3>
+                <p>Rapid dataset construction for static department discharge history.</p>
+            </div>
+            <div class="alg-card">
+                <div class="alg-header">
+                    <i class="ri-list-check"></i>
+                    <span class="badge">O(n²)</span>
+                </div>
+                <h3>Insertion Sort</h3>
+                <p>Fast array ordering when the dataset is almost strictly sorted.</p>
+            </div>
+            <div class="alg-card">
+                <div class="alg-header">
+                    <i class="ri-list-unordered"></i>
+                    <span class="badge">O(n)</span>
+                </div>
+                <h3>Linear Search</h3>
+                <p>Exhaustive element traversal for non-indexed small arrays.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Interactive Simulator -->
+    <section class="section-light simulator" id="simulator">
+        <div class="container section-header center">
+            <h2>Interactive <span class="text-red">ER Queue</span> Simulator</h2>
+            <p>Add patients to see the Min-Heap algorithm in action (Priority 1 = Critical).</p>
+        </div>
+        <div class="container sim-container">
+            <div class="sim-form">
+                <div class="sim-header">
+                    <i class="ri-user-add-line text-red"></i>
+                    <h3>Admit Patient</h3>
+                </div>
+                <form id="admitForm">
+                    <div class="form-group">
+                        <label>FULL NAME</label>
+                        <input type="text" id="pName" placeholder="e.g. John Doe" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label>AGE</label>
+                            <input type="number" id="pAge" placeholder="45" required>
+                        </div>
+                        <div class="form-group half">
+                            <label>TRIAGE LEVEL</label>
+                            <select id="pTriage" required>
+                                <option value="1">1 - Critical (Red)</option>
+                                <option value="2">2 - Severe (Orange)</option>
+                                <option value="3">3 - Moderate (Yellow)</option>
+                                <option value="4">4 - Minor (Green)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>CONDITION</label>
+                        <input type="text" id="pCondition" placeholder="Cardiac Trauma, etc." required>
+                    </div>
+                    <button type="submit" class="btn-dark w-100 mt-2"><i class="ri-add-line"></i> Add to Queue</button>
+                    <div class="btn-row mt-2">
+                        <button type="button" class="btn-red w-50" id="btnUndo"><i class="ri-arrow-go-back-line"></i>
+                            Undo Last</button>
+                        <button type="button" class="btn-light w-50" id="btnClear"><i class="ri-refresh-line"></i>
+                            Clear/Reset</button>
+                    </div>
+                </form>
+            </div>
+            <div class="sim-queue">
+                <div class="sim-queue-header">
+                    <h3><i class="ri-list-check"></i> Live Priority Queue</h3>
+                    <span class="badge-waiting" id="queueCount">0 Patients Waiting</span>
+                </div>
+                <div class="queue-list" id="queueList">
+                    <div class="empty-state">
+                        <i class="ri-inbox-archive-line"></i>
+                        <p>No patients in the current queue.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sample Dataset -->
+    <section class="section-light dataset">
+        <div class="container section-header">
+            <h2>Sample <span class="text-red">Triage Dataset</span></h2>
+            <p>Baseline performance testing for clinical loads.</p>
+        </div>
+        <div class="container table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>PATIENT NAME</th>
+                        <th>AGE</th>
+                        <th>TRIAGE LEVEL</th>
+                        <th>CONDITION</th>
+                    </tr>
+                </thead>
+                <tbody id="datasetBody">
+                    <tr>
+                        <td>Ravi Sharma</td>
+                        <td>45</td>
+                        <td><span class="badge-triage critical">CRITICAL</span></td>
+                        <td>Cardiac Arrest</td>
+                    </tr>
+                    <tr>
+                        <td>Anjali Singh</td>
+                        <td>24</td>
+                        <td><span class="badge-triage severe">SEVERE</span></td>
+                        <td>Major Trauma</td>
+                    </tr>
+                    <tr>
+                        <td>Michael Loh</td>
+                        <td>62</td>
+                        <td><span class="badge-triage moderate">MODERATE</span></td>
+                        <td>Severe Flu</td>
+                    </tr>
+                    <tr>
+                        <td>Priya Verma</td>
+                        <td>28</td>
+                        <td><span class="badge-triage minor">MINOR</span></td>
+                        <td>Sprained Ankle</td>
+                    </tr>
+                    <tr>
+                        <td>Santosh Kumar</td>
+                        <td>56</td>
+                        <td><span class="badge-triage critical">CRITICAL</span></td>
+                        <td>Respiratory Failure</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Technical Audit Section -->
+    <section class="technical-audit" id="summary">
+        <div class="container section-header center text-center">
+            <h2>Technical <span class="text-red">Audit</span></h2>
+            <p>Data structure complexity for ER environment.</p>
+        </div>
+        <div class="container ta-container">
+            <div class="ta-left">
+                <div class="ta-card">
+                    <div class="ta-card-header">
+                        <h3><i class="ri-triangle-fill text-red"></i> Time & Space Complexity</h3>
+                    </div>
+                    <div class="ta-list">
+                        <div class="ta-item">
+                            <span class="ta-name">Priority Queue (Min-Heap)</span>
+                            <span class="ta-val">O(log n) <br><small>Insertion/Extraction</small></span>
+                        </div>
+                        <div class="ta-item">
+                            <span class="ta-name">Hash Table</span>
+                            <span class="ta-val text-blue">O(1) <br><small>Average Search</small></span>
+                        </div>
+                        <div class="ta-item">
+                            <span class="ta-name">Binary Search</span>
+                            <span class="ta-val text-red">O(log n) <br><small>Sorted Retrieval</small></span>
+                        </div>
+                        <div class="ta-item">
+                            <span class="ta-name">Stack Operations</span>
+                            <span class="ta-val text-teal">O(1) <br><small>Push/Pop (Undo)</small></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="ta-right">
+                <h3>The Architecture of <span class="text-red">Efficiency</span></h3>
+                <p>By selecting a Min-Heap as the primary driver for our queue, we ensure that the triage process
+                    remains lightning fast, regardless of whether we have 10 or 1,000 patients. The time complexity of
+                    O(log n) means that even with a massive influx of patients (e.g., during a mass casualty event), the
+                    system will re-order priority almost instantaneously.</p>
+                <ul class="ta-features">
+                    <li><i class="ri-check-line text-red"></i> Memory-efficient circular buffer management.</li>
+                    <li><i class="ri-check-line text-red"></i> Conflict-free hash-based patient identification.</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container footer-content">
+            <div class="footer-logo">
+                <span class="logo-red">ER</span>QUEUE
+                <p class="copyright">© 2024 Satyam Kumar 'Nemo' | BIT | DSA Project</p>
+            </div>
+            <div class="footer-links">
+                <a href="#">Course B.E.</a>
+                <a href="#">Source Code</a>
+                <a href="#">Faculty Details</a>
+                <a href="#">ER Queue Dataset</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
