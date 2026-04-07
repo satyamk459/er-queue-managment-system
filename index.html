@@ -14,6 +14,158 @@
 
 <body>
 
+    <!-- ============================================ -->
+    <!-- LOGIN OVERLAY -->
+    <!-- ============================================ -->
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-particles" id="loginParticles"></div>
+        <div class="login-container">
+            <div class="login-card">
+                <div class="login-header">
+                    <div class="login-logo">
+                        <div class="login-logo-icon">
+                            <i class="ri-heart-pulse-fill"></i>
+                        </div>
+                        <span class="login-logo-text"><span class="logo-red">ER</span>QUEUE</span>
+                    </div>
+                    <p class="login-subtitle">Authorized Personnel Only</p>
+                </div>
+
+                <!-- Tab Switcher -->
+                <div class="auth-tabs">
+                    <button class="auth-tab active" id="tabSignIn" data-tab="signin">
+                        <i class="ri-login-box-line"></i> Sign In
+                    </button>
+                    <button class="auth-tab" id="tabRegister" data-tab="register">
+                        <i class="ri-user-add-line"></i> Register
+                    </button>
+                </div>
+
+                <!-- ====== SIGN IN FORM ====== -->
+                <form id="loginForm" class="login-form auth-panel active" data-panel="signin">
+                    <div class="login-role-selector">
+                        <input type="radio" name="role" id="roleDoctor" value="doctor" checked>
+                        <label for="roleDoctor" class="role-option">
+                            <i class="ri-stethoscope-line"></i>
+                            <span>Doctor</span>
+                        </label>
+                        <input type="radio" name="role" id="roleCrew" value="crew">
+                        <label for="roleCrew" class="role-option">
+                            <i class="ri-nurse-line"></i>
+                            <span>Crew Member</span>
+                        </label>
+                    </div>
+
+                    <div class="login-field">
+                        <label for="loginUserId"><i class="ri-user-3-line"></i> User ID</label>
+                        <input type="text" id="loginUserId" placeholder="Enter your User ID" required autocomplete="off">
+                    </div>
+                    <div class="login-field">
+                        <label for="loginPassword"><i class="ri-lock-2-line"></i> Password</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="loginPassword" placeholder="Enter your Password" required autocomplete="off">
+                            <button type="button" class="toggle-password" id="togglePassword">
+                                <i class="ri-eye-off-line" id="eyeIcon"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="loginError" class="login-error" style="display:none;">
+                        <i class="ri-error-warning-line"></i>
+                        <span id="loginErrorText">Invalid credentials</span>
+                    </div>
+
+                    <button type="submit" class="login-btn" id="loginBtn">
+                        <span class="login-btn-text">Sign In</span>
+                        <span class="login-btn-loader" style="display:none;">
+                            <i class="ri-loader-4-line"></i>
+                        </span>
+                    </button>
+                </form>
+
+                <!-- ====== REGISTER FORM ====== -->
+                <form id="registerForm" class="login-form auth-panel" data-panel="register">
+                    <div class="login-role-selector">
+                        <input type="radio" name="regRole" id="regRoleDoctor" value="doctor" checked>
+                        <label for="regRoleDoctor" class="role-option">
+                            <i class="ri-stethoscope-line"></i>
+                            <span>Doctor</span>
+                        </label>
+                        <input type="radio" name="regRole" id="regRoleCrew" value="crew">
+                        <label for="regRoleCrew" class="role-option">
+                            <i class="ri-nurse-line"></i>
+                            <span>Crew Member</span>
+                        </label>
+                    </div>
+
+                    <div class="login-field">
+                        <label for="regName"><i class="ri-id-card-line"></i> Full Name</label>
+                        <input type="text" id="regName" placeholder="e.g. Dr. Satyam Kumar" required autocomplete="off">
+                    </div>
+                    <div class="login-field">
+                        <label for="regUserId"><i class="ri-user-3-line"></i> Choose User ID</label>
+                        <input type="text" id="regUserId" placeholder="e.g. satyam01" required autocomplete="off" minlength="3">
+                    </div>
+                    <div class="login-field">
+                        <label for="regPassword"><i class="ri-lock-2-line"></i> Password</label>
+                        <input type="password" id="regPassword" placeholder="Min 6 characters" required autocomplete="off" minlength="6">
+                    </div>
+                    <div class="login-field">
+                        <label for="regConfirm"><i class="ri-lock-check-line"></i> Confirm Password</label>
+                        <input type="password" id="regConfirm" placeholder="Re-enter password" required autocomplete="off">
+                    </div>
+
+                    <div id="registerMsg" class="login-error" style="display:none;">
+                        <i class="ri-error-warning-line" id="regMsgIcon"></i>
+                        <span id="registerMsgText"></span>
+                    </div>
+
+                    <button type="submit" class="login-btn" id="registerBtn">
+                        <span class="login-btn-text">Create Account</span>
+                        <span class="login-btn-loader" style="display:none;">
+                            <i class="ri-loader-4-line"></i>
+                        </span>
+                    </button>
+                </form>
+
+                <div class="login-footer">
+                    <p><i class="ri-shield-check-line"></i> Secure clinical access portal</p>
+                </div>
+            </div>
+            <div class="login-info-panel">
+                <div class="login-info-content">
+                    <h2>Clinical <span class="text-red">Precision</span></h2>
+                    <p>Emergency Room Patient Queue Management System powered by advanced Data Structures & Algorithms.</p>
+                    <div class="login-features">
+                        <div class="login-feature">
+                            <i class="ri-speed-line"></i>
+                            <span>Real-time triage prioritization</span>
+                        </div>
+                        <div class="login-feature">
+                            <i class="ri-cloud-line"></i>
+                            <span>Cloud-synced across all devices</span>
+                        </div>
+                        <div class="login-feature">
+                            <i class="ri-shield-keyhole-line"></i>
+                            <span>Role-based secure access</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="login-info-pulse">
+                    <svg viewBox="0 0 200 40" preserveAspectRatio="none">
+                        <polyline fill="none" stroke="rgba(218,49,57,0.4)" stroke-width="2"
+                            points="0,20 30,20 40,8 50,32 60,8 70,32 80,20 120,20 130,4 150,36 160,20 200,20" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MAIN APPLICATION (Hidden until login) -->
+    <!-- ============================================ -->
+    <div class="app-wrapper" id="appWrapper" style="display:none;">
+
     <!-- Header -->
     <header class="header">
         <div class="logo">
@@ -28,7 +180,15 @@
             <a href="#simulator">Simulator</a>
             <a href="#summary">Summary</a>
         </nav>
-        <button class="btn-dark">Emergency Triage</button>
+        <div class="header-right-group">
+            <span class="user-badge" id="userBadge" style="display:none;">
+                <i class="ri-user-3-fill"></i>
+                <span id="userRoleLabel">Doctor</span>
+            </span>
+            <button class="btn-dark btn-logout" id="btnLogout">
+                <i class="ri-logout-box-r-line"></i> Logout
+            </button>
+        </div>
     </header>
 
     <!-- Hero Section -->
@@ -372,6 +532,8 @@
             </div>
         </div>
     </footer>
+
+    </div> <!-- END .app-wrapper -->
 
     <!-- Firebase SDK (CDN - no npm required) -->
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
