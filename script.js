@@ -1,1165 +1,567 @@
-:root {
-    --primary-red: #da3139;
-    --dark-bg: #0b0f19;
-    --card-dark: #161e31;
-    --card-dark-hover: #1f2942;
-    --text-main: #1f2937;
-    --text-muted: #6b7280;
-    --bg-light: #f8fafc;
-    --white: #ffffff;
-    --border-color: #e2e8f0;
-    
-    /* Status Colors */
-    --badge-critical-bg: #ffe4e6;
-    --badge-critical-text: #e11d48;
-    --badge-severe-bg: #ffedd5;
-    --badge-severe-text: #ea580c;
-    --badge-moderate-bg: #fef9c3;
-    --badge-moderate-text: #ca8a04;
-    --badge-minor-bg: #dcfce7;
-    --badge-minor-text: #16a34a;
+// =============================================
+// LOGIN SYSTEM — Authentication & Session
+// =============================================
+
+// Default built-in credentials (always available)
+const DEFAULT_CREDENTIALS = {
+    doctor: [
+        { userId: 'doc01', password: 'clinical123', name: 'Dr. Admin' },
+        { userId: 'doc02', password: 'doctor456', name: 'Dr. Specialist' },
+    ],
+    crew: [
+        { userId: 'crew01', password: 'triage456', name: 'Nurse Station' },
+        { userId: 'crew02', password: 'crew789', name: 'Paramedic Unit' },
+    ]
+};
+
+// Firebase ref for registered users (loaded after Firebase init)
+let usersRef = null;
+let firebaseUsers = { doctor: [], crew: [] };
+
+function initUsersRef() {
+    if (typeof firebase !== 'undefined' && firebase.database) {
+        usersRef = firebase.database().ref('erqueue/users');
+        // Listen for registered users in real-time
+        usersRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            firebaseUsers = { doctor: [], crew: [] };
+            if (data) {
+                Object.values(data).forEach(u => {
+                    if (firebaseUsers[u.role]) {
+                        firebaseUsers[u.role].push(u);
+                    }
+                });
+            }
+        });
+    }
 }
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+// --- Floating Particles ---
+function createParticles() {
+    const container = document.getElementById('loginParticles');
+    if (!container) return;
+    const colors = ['rgba(218,49,57,0.35)', 'rgba(99,102,241,0.25)', 'rgba(139,92,246,0.2)', 'rgba(255,255,255,0.08)'];
+    for (let i = 0; i < 30; i++) {
+        const p = document.createElement('div');
+        p.className = 'login-particle';
+        const size = Math.random() * 6 + 2;
+        p.style.width = size + 'px';
+        p.style.height = size + 'px';
+        p.style.left = Math.random() * 100 + '%';
+        p.style.background = colors[Math.floor(Math.random() * colors.length)];
+        p.style.animationDuration = (Math.random() * 12 + 8) + 's';
+        p.style.animationDelay = (Math.random() * 10) + 's';
+        container.appendChild(p);
+    }
 }
 
-body {
-    font-family: 'Inter', sans-serif;
-    color: var(--text-main);
-    background-color: var(--bg-light);
-    line-height: 1.6;
+// --- Password Toggle ---
+function setupPasswordToggle() {
+    const toggle = document.getElementById('togglePassword');
+    const input = document.getElementById('loginPassword');
+    const icon = document.getElementById('eyeIcon');
+    if (!toggle) return;
+    toggle.addEventListener('click', () => {
+        const isPassword = input.type === 'password';
+        input.type = isPassword ? 'text' : 'password';
+        icon.className = isPassword ? 'ri-eye-line' : 'ri-eye-off-line';
+    });
 }
 
-h1, h2, h3, h4, .logo {
-    font-family: 'Outfit', sans-serif;
+// --- Auth Tab Switching ---
+function setupAuthTabs() {
+    const tabs = document.querySelectorAll('.auth-tab');
+    const panels = document.querySelectorAll('.auth-panel');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const target = tab.dataset.tab;
+            // Switch active tab
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            // Switch active panel
+            panels.forEach(p => {
+                p.classList.remove('active');
+                if (p.dataset.panel === target) p.classList.add('active');
+            });
+            // Clear messages
+            const loginErr = document.getElementById('loginError');
+            const regMsg = document.getElementById('registerMsg');
+            if (loginErr) loginErr.style.display = 'none';
+            if (regMsg) regMsg.style.display = 'none';
+        });
+    });
 }
 
-.text-red { color: var(--primary-red); }
-.text-blue { color: #3b82f6; }
-.text-indigo { color: #6366f1; }
-.text-purple { color: #a855f7; }
-.text-teal { color: #14b8a6; }
+// --- Login Handler ---
+function setupLogin() {
+    const form = document.getElementById('loginForm');
+    const errorBox = document.getElementById('loginError');
+    const errorText = document.getElementById('loginErrorText');
+    const loginBtn = document.getElementById('loginBtn');
+    const overlay = document.getElementById('loginOverlay');
+    const appWrapper = document.getElementById('appWrapper');
 
-a { text-decoration: none; }
-ul { list-style: none; }
+    if (!form) return;
 
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 2rem;
-}
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        errorBox.style.display = 'none';
 
-.small-caps {
-    text-transform: uppercase;
-    font-size: 0.8rem;
-    font-weight: 700;
-    letter-spacing: 1px;
-    display: block;
-    margin-bottom: 0.5rem;
-}
+        const role = document.querySelector('input[name="role"]:checked').value;
+        const userId = document.getElementById('loginUserId').value.trim();
+        const password = document.getElementById('loginPassword').value;
 
-.section-header {
-    margin-bottom: 3rem;
-}
-.section-header.center {
-    text-align: center;
-}
-.section-header h2 {
-    font-size: 2.5rem;
-    font-weight: 700;
-}
-.section-header p {
-    color: var(--text-muted);
-    font-size: 1.1rem;
-    max-width: 600px;
-    margin: 0.5rem auto 0;
-}
+        // Show loader
+        loginBtn.querySelector('.login-btn-text').style.display = 'none';
+        loginBtn.querySelector('.login-btn-loader').style.display = 'inline-flex';
+        loginBtn.disabled = true;
 
-/* Header */
-.header {
-    position: absolute;
-    top: 0; width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.5rem 4rem;
-    z-index: 100;
-    background: transparent;
-}
-.logo {
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: var(--white);
-    letter-spacing: -0.5px;
-}
-.logo-red {
-    color: var(--primary-red);
+        setTimeout(() => {
+            // Check default credentials first, then Firebase users
+            const defaults = DEFAULT_CREDENTIALS[role] || [];
+            const fbUsers = firebaseUsers[role] || [];
+            const allUsers = [...defaults, ...fbUsers];
+            const match = allUsers.find(u => u.userId === userId && u.password === password);
+
+            if (match) {
+                sessionStorage.setItem('erqueue_auth', JSON.stringify({
+                    role: role,
+                    userId: match.userId,
+                    name: match.name,
+                    loggedInAt: Date.now()
+                }));
+
+                overlay.classList.add('hidden');
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                    appWrapper.style.display = 'block';
+                    updateUserBadge(role, match.name);
+                }, 600);
+            } else {
+                errorText.textContent = 'Invalid User ID or Password. Please try again.';
+                errorBox.style.display = 'flex';
+                errorBox.style.animation = 'none';
+                errorBox.offsetHeight;
+                errorBox.style.animation = '';
+
+                loginBtn.querySelector('.login-btn-text').style.display = 'inline';
+                loginBtn.querySelector('.login-btn-loader').style.display = 'none';
+                loginBtn.disabled = false;
+            }
+        }, 800);
+    });
 }
 
-/* Sync Status Badge */
-.sync-badge {
-    font-size: 0.65rem;
-    font-weight: 600;
-    font-family: 'Inter', sans-serif;
-    padding: 0.25rem 0.65rem;
-    border-radius: 20px;
-    margin-left: 0.75rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    vertical-align: middle;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-}
-.sync-badge.online {
-    background: rgba(22, 163, 74, 0.15);
-    color: #16a34a;
-    border: 1px solid rgba(22, 163, 74, 0.3);
-    animation: pulseGlow 2s ease-in-out infinite;
-}
-.sync-badge.offline {
-    background: rgba(220, 38, 38, 0.15);
-    color: #dc2626;
-    border: 1px solid rgba(220, 38, 38, 0.3);
-}
-.sync-badge.connecting {
-    background: rgba(202, 138, 4, 0.15);
-    color: #ca8a04;
-    border: 1px solid rgba(202, 138, 4, 0.3);
-}
-.sync-badge.connecting i {
-    animation: spin 1s linear infinite;
-}
-@keyframes pulseGlow {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
-}
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-.nav-links a {
-    color: #cbd5e1;
-    margin: 0 1rem;
-    font-size: 0.95rem;
-    font-weight: 500;
-    transition: color 0.3s ease;
-}
-.nav-links a:hover, .nav-links a.active {
-    color: var(--white);
-}
-.btn-dark {
-    background: var(--dark-bg);
-    color: var(--white);
-    border: 1px solid rgba(255,255,255,0.2);
-    padding: 0.6rem 1.5rem;
-    border-radius: 6px;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: 'Outfit', sans-serif;
-    transition: background 0.3s ease;
-}
-.btn-dark:hover {
-    background: var(--card-dark-hover);
+// --- Register Handler ---
+function setupRegister() {
+    const form = document.getElementById('registerForm');
+    if (!form) return;
+
+    const msgBox = document.getElementById('registerMsg');
+    const msgText = document.getElementById('registerMsgText');
+    const msgIcon = document.getElementById('regMsgIcon');
+    const regBtn = document.getElementById('registerBtn');
+
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        msgBox.style.display = 'none';
+        msgBox.classList.remove('success');
+
+        const role = document.querySelector('input[name="regRole"]:checked').value;
+        const name = document.getElementById('regName').value.trim();
+        const userId = document.getElementById('regUserId').value.trim();
+        const password = document.getElementById('regPassword').value;
+        const confirm = document.getElementById('regConfirm').value;
+
+        // Validation
+        if (password !== confirm) {
+            showRegMsg('Passwords do not match.', false);
+            return;
+        }
+        if (userId.length < 3) {
+            showRegMsg('User ID must be at least 3 characters.', false);
+            return;
+        }
+
+        // Check if userId already exists
+        const defaults = DEFAULT_CREDENTIALS[role] || [];
+        const fbUsers = firebaseUsers[role] || [];
+        const allUsers = [...defaults, ...fbUsers];
+        if (allUsers.find(u => u.userId === userId)) {
+            showRegMsg('This User ID is already taken. Try another.', false);
+            return;
+        }
+
+        // Show loader
+        regBtn.querySelector('.login-btn-text').style.display = 'none';
+        regBtn.querySelector('.login-btn-loader').style.display = 'inline-flex';
+        regBtn.disabled = true;
+
+        // Save to Firebase
+        const newUserRef = usersRef.push();
+        newUserRef.set({
+            role: role,
+            userId: userId,
+            password: password,
+            name: name,
+            createdAt: Date.now()
+        }).then(() => {
+            showRegMsg('Account created! You can now Sign In.', true);
+            form.reset();
+            // Auto-switch to Sign In tab after 1.5s
+            setTimeout(() => {
+                document.getElementById('tabSignIn').click();
+                // Pre-fill the userId
+                document.getElementById('loginUserId').value = userId;
+                document.getElementById('loginPassword').focus();
+            }, 1500);
+        }).catch((err) => {
+            showRegMsg('Registration failed: ' + err.message, false);
+        }).finally(() => {
+            regBtn.querySelector('.login-btn-text').style.display = 'inline';
+            regBtn.querySelector('.login-btn-loader').style.display = 'none';
+            regBtn.disabled = false;
+        });
+    });
+
+    function showRegMsg(text, isSuccess) {
+        msgText.textContent = text;
+        msgBox.style.display = 'flex';
+        msgBox.classList.toggle('success', isSuccess);
+        msgIcon.className = isSuccess ? 'ri-check-line' : 'ri-error-warning-line';
+        msgBox.style.animation = 'none';
+        msgBox.offsetHeight;
+        msgBox.style.animation = '';
+    }
 }
 
-/* Hero Section */
-.hero {
-    position: relative;
-    padding: 12rem 4rem 8rem;
-    background: linear-gradient(to bottom, rgba(11, 15, 25, 0.8), rgba(248, 250, 252, 1)), url('../../brain/f6cd5be9-fc47-433a-889e-604f3d677c22/hallway_bg_1774881973906.png') center/cover no-repeat;
-    min-height: 80vh;
-    display: flex;
-    align-items: center;
-}
-.hero-content {
-    max-width: 1200px;
-    margin: 0 auto;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-}
-.hero-left {
-    color: var(--white);
-    max-width: 600px;
-}
-.subtitle {
-    font-size: 0.8rem;
-    font-weight: 700;
-    letter-spacing: 2px;
-    color: var(--primary-red);
-    text-transform: uppercase;
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: rgba(218, 49, 57, 0.1);
-    padding: 0.4rem 0.8rem;
-    border-radius: 4px;
-    width: fit-content;
-    border: 1px solid rgba(218, 49, 57, 0.3);
-}
-.main-title {
-    font-size: 4.5rem;
-    line-height: 1.1;
-    margin-bottom: 1.5rem;
-    letter-spacing: -1px;
-}
-.description {
-    font-size: 1.15rem;
-    color: #cbd5e1;
-    margin-bottom: 2.5rem;
-    max-width: 500px;
-}
-.dev-credits {
-    display: flex;
-    gap: 2rem;
-}
-.credit-box {
-    display: flex;
-    flex-direction: column;
-    background: rgba(255,255,255,0.05);
-    padding: 1rem 1.5rem;
-    border-radius: 8px;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.1);
-}
-.credit-title { font-size: 0.7rem; color: #94a3b8; font-weight: 700; letter-spacing: 1px;}
-.credit-name { font-size: 1rem; font-weight: 600; font-family: 'Outfit'; margin-top: 5px;}
-.credit-sub { font-size: 0.8rem; color: #cbd5e1;}
-
-.hero-right {
-    width: 350px;
-}
-.system-vitals-card {
-    background: rgba(22, 30, 49, 0.7);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 12px;
-    padding: 1.5rem;
-    backdrop-filter: blur(16px);
-    color: white;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-}
-.sv-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-}
-.sv-header h3 { font-size: 1.1rem; }
-.pulse-graph {
-    height: 60px;
-    margin-bottom: 1.5rem;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    position: relative;
-}
-.sv-stats {
-    display: flex;
-    justify-content: space-between;
-}
-.stat {
-    display: flex;
-    flex-direction: column;
-}
-.stat-label { font-size: 0.75rem; color: #94a3b8; }
-.stat-value { font-size: 1.25rem; font-family: 'Outfit'; font-weight: 700; }
-
-/* The Critical Nature of ER Triage */
-.section-light {
-    padding: 5rem 0;
-}
-.critical-nature .container {
-    display: flex;
-    gap: 4rem;
-    align-items: center;
-}
-.cn-left { flex: 1; }
-.cn-left h2 {
-    font-size: 2.5rem;
-    margin-bottom: 1.5rem;
-}
-.cn-desc {
-    color: var(--text-muted);
-    font-size: 1.1rem;
-    margin-bottom: 2rem;
-}
-.cn-cards {
-    display: flex;
-    gap: 1.5rem;
-}
-.cn-card {
-    background: var(--white);
-    padding: 1.5rem;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
-    flex: 1;
-    border: 1px solid var(--border-color);
-}
-.icon-box {
-    width: 40px; height: 40px;
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    background: #fff1f2;
-    margin-bottom: 1rem;
-    font-size: 1.5rem;
-}
-.cn-card h4 { margin-bottom: 0.5rem; font-size: 1.1rem; }
-.cn-card p { font-size: 0.9rem; color: var(--text-muted); }
-.cn-right { flex: 1; }
-.doctor-img {
-    width: 100%;
-    border-radius: 16px;
-    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+// --- Update Header Badge ---
+function updateUserBadge(role, name) {
+    const badge = document.getElementById('userBadge');
+    const label = document.getElementById('userRoleLabel');
+    if (badge && label) {
+        label.textContent = role === 'doctor' ? '🩺 Doctor' : '🏥 Crew';
+        badge.style.display = 'inline-flex';
+        badge.title = name;
+    }
 }
 
-/* Core Data Structures */
-.ds-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 2rem;
-    justify-content: center;
-}
-.ds-card {
-    background: var(--white);
-    padding: 2rem;
-    border-radius: 16px;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-    border: 1px solid var(--border-color);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-.ds-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
-}
-.ds-icon {
-    width: 48px; height: 48px;
-    border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.5rem;
-    margin-bottom: 1.5rem;
-}
-.bg-red-light { background: #fee2e2; }
-.bg-blue-light { background: #dbeafe; }
-.bg-indigo-light { background: #e0e7ff; }
-.bg-purple-light { background: #f3e8ff; }
-.bg-teal-light { background: #ccfbf1; }
-
-.ds-card h3 { margin-bottom: 1rem; font-size: 1.25rem; }
-.ds-card p { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.5rem; min-height: 80px;}
-.ds-meta {
-    display: flex;
-    gap: 1rem;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: #475569;
-}
-.ds-meta span {
-    background: #f1f5f9;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
+// --- Logout Handler ---
+function setupLogout() {
+    const btn = document.getElementById('btnLogout');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+        sessionStorage.removeItem('erqueue_auth');
+        window.location.reload();
+    });
 }
 
-/* Algorithms */
-.alg-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1.5rem;
-}
-.alg-card {
-    background: var(--white);
-    padding: 1.5rem;
-    border-radius: 12px;
-    border: 1px solid var(--border-color);
-}
-.alg-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-}
-.alg-header i { font-size: 1.5rem; color: #64748b;}
-.badge {
-    background: #fef2f2;
-    color: var(--primary-red);
-    padding: 0.2rem 0.6rem;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 700;
-}
-.alg-card h3 { font-size: 1.1rem; margin-bottom: 0.5rem; }
-.alg-card p { font-size: 0.85rem; color: var(--text-muted); }
-
-/* Simulator Form */
-.sim-container {
-    display: grid;
-    grid-template-columns: 1fr 2fr;
-    gap: 2rem;
-    align-items: start;
-}
-.sim-form {
-    background: var(--bg-light);
-    border: 1px solid var(--border-color);
-    border-radius: 16px;
-}
-.sim-header {
-    padding: 1.5rem;
-    border-bottom: 1px solid var(--border-color);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-.sim-header h3 { margin: 0; font-size: 1.25rem;}
-.sim-form form {
-    padding: 1.5rem;
-}
-.form-group {
-    margin-bottom: 1.25rem;
-}
-.form-row {
-    display: flex; gap: 1rem;
-}
-.half { flex: 1; }
-label {
-    display: block;
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: #475569;
-    margin-bottom: 0.5rem;
-}
-input, select {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-    background: var(--white);
-    font-family: 'Inter', sans-serif;
-    font-size: 0.95rem;
-    outline: none;
-    transition: border-color 0.2s;
-}
-input:focus, select:focus {
-    border-color: var(--primary-red);
-}
-.w-100 { width: 100%; }
-.w-50 { width: 48%; }
-.mt-2 { margin-top: 1rem; }
-.btn-row { display: flex; justify-content: space-between; }
-.btn-red {
-    background: var(--primary-red);
-    color: white;
-    border: none;
-    padding: 0.75rem;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 600;
-    font-family: 'Outfit';
-    transition: background 0.2s;
-}
-.btn-red:hover { background: #b91c1c; }
-.btn-light {
-    background: #e2e8f0;
-    color: #334155;
-    border: none;
-    padding: 0.75rem;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 600;
-    font-family: 'Outfit';
-    transition: background 0.2s;
-}
-.btn-light:hover { background: #cbd5e1; }
-
-/* Simulator Queue UI */
-.sim-queue {
-    background: var(--white);
-    border-radius: 16px;
-    border: 1px solid var(--border-color);
-    min-height: 400px;
-    display: flex;
-    flex-direction: column;
-}
-.sim-queue-header {
-    padding: 1.5rem;
-    border-bottom: 1px solid var(--border-color);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.sim-queue-header h3 { display: flex; align-items: center; gap: 0.5rem;}
-.badge-waiting {
-    background: #f1f5f9;
-    padding: 0.3rem 0.8rem;
-    border-radius: 12px;
-    font-size: 0.8rem;
-    font-weight: 600;
-}
-.queue-list {
-    flex: 1;
-    padding: 1.5rem;
-    overflow-y: auto;
-    max-height: 500px;
-}
-.empty-state {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: #94a3b8;
-}
-.empty-state i { font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;}
-
-.queue-item {
-    display: flex;
-    align-items: center;
-    padding: 1rem;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    margin-bottom: 1rem;
-    background: var(--white);
-    animation: slideIn 0.3s ease-out forwards;
-}
-@keyframes slideIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+// --- Check Existing Session ---
+function checkSession() {
+    const session = sessionStorage.getItem('erqueue_auth');
+    if (session) {
+        try {
+            const data = JSON.parse(session);
+            const overlay = document.getElementById('loginOverlay');
+            const appWrapper = document.getElementById('appWrapper');
+            overlay.style.display = 'none';
+            appWrapper.style.display = 'block';
+            updateUserBadge(data.role, data.name);
+            return true;
+        } catch (e) {
+            sessionStorage.removeItem('erqueue_auth');
+        }
+    }
+    return false;
 }
 
-.qi-index {
-    font-size: 1.25rem; font-weight: 800; color: #cbd5e1; min-width: 30px;
-}
-.qi-details {
-    flex: 1; margin-left: 1rem;
-}
-.qi-name { font-weight: 700; font-size: 1.1rem;}
-.qi-cond { font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;}
+// --- Initialize Login System ---
+document.addEventListener('DOMContentLoaded', () => {
+    // Init Firebase users ref (Firebase is loaded before script.js)
+    initUsersRef();
 
-/* Sample Dataset Table */
-.dataset { background: var(--white); }
-.table-responsive { overflow-x: auto; }
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.95rem;
-}
-.data-table th {
-    text-align: left;
-    padding: 1rem;
-    background: var(--dark-bg);
-    color: white;
-    font-size: 0.8rem;
-    letter-spacing: 1px;
-}
-.data-table th:first-child { border-top-left-radius: 8px; }
-.data-table th:last-child { border-top-right-radius: 8px; }
-.data-table td {
-    padding: 1.25rem 1rem;
-    border-bottom: 1px solid var(--border-color);
-    font-weight: 500;
-}
-.data-table tbody tr:hover {
-    background: #f8fafc;
+    if (!checkSession()) {
+        createParticles();
+        setupPasswordToggle();
+    }
+    setupAuthTabs();
+    setupLogin();
+    setupRegister();
+    setupLogout();
+});
+
+// =============================================
+// ER QUEUE APPLICATION
+// =============================================
+
+class PatientNode {
+    constructor(name, age, triageLevel, condition) {
+        this.id = 'PT-' + Math.floor(Math.random() * 10000);
+        this.name = name;
+        this.age = age;
+        this.triageLevel = parseInt(triageLevel);
+        this.condition = condition;
+        this.timestamp = Date.now();
+    }
 }
 
-.badge-triage {
-    padding: 0.3rem 0.8rem;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-}
-.badge-triage.critical { background: var(--badge-critical-bg); color: var(--badge-critical-text); }
-.badge-triage.severe { background: var(--badge-severe-bg); color: var(--badge-severe-text); }
-.badge-triage.moderate { background: var(--badge-moderate-bg); color: var(--badge-moderate-text); }
-.badge-triage.minor { background: var(--badge-minor-bg); color: var(--badge-minor-text); }
+class MinHeap {
+    constructor() {
+        this.heap = [];
+    }
 
+    getLeftChildIndex(parentIndex) { return 2 * parentIndex + 1; }
+    getRightChildIndex(parentIndex) { return 2 * parentIndex + 2; }
+    getParentIndex(childIndex) { return Math.floor((childIndex - 1) / 2); }
 
-/* Technical Audit */
-.technical-audit {
-    padding: 5rem 0;
-    background: var(--bg-light);
-}
-.ta-container {
-    display: flex;
-    gap: 4rem;
-    align-items: center;
-}
-.ta-left, .ta-right { flex: 1; }
-.ta-card {
-    background: var(--dark-bg);
-    border-radius: 16px;
-    color: white;
-    overflow: hidden;
-}
-.ta-card-header {
-    padding: 1.5rem;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-}
-.ta-card-header h3 { display: flex; align-items: center; gap: 0.5rem; font-size: 1.25rem;}
-.ta-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 1.25rem 1.5rem;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-}
-.ta-item:last-child { border-bottom: none; }
-.ta-name { font-weight: 600; }
-.ta-val { text-align: right; font-family: 'Outfit'; font-weight: 700; font-size: 1.1rem;}
-.ta-val small { font-weight: 400; font-size: 0.75rem; color: #94a3b8; font-family: 'Inter'; display: block;}
+    hasLeftChild(index) { return this.getLeftChildIndex(index) < this.heap.length; }
+    hasRightChild(index) { return this.getRightChildIndex(index) < this.heap.length; }
+    hasParent(index) { return this.getParentIndex(index) >= 0; }
 
-.ta-right h3 { font-size: 2rem; margin-bottom: 1rem; }
-.ta-right p { color: var(--text-muted); margin-bottom: 1.5rem; }
-.ta-features li {
-    display: flex; align-items: center; gap: 0.5rem;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-}
+    leftChild(index) { return this.heap[this.getLeftChildIndex(index)]; }
+    rightChild(index) { return this.heap[this.getRightChildIndex(index)]; }
+    parent(index) { return this.heap[this.getParentIndex(index)]; }
 
-/* Footer */
-.footer {
-    background: var(--white);
-    border-top: 1px solid var(--border-color);
-    padding: 2rem 0;
-}
-.footer-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.footer-logo { font-family: 'Outfit'; font-weight: 800; font-size: 1.5rem;}
-.copyright { font-size: 0.8rem; color: var(--text-muted); font-family: 'Inter'; font-weight: 400; margin-top: 0.25rem;}
-.footer-links { display: flex; gap: 1.5rem; }
-.footer-links a { color: #64748b; font-size: 0.85rem; font-weight: 500; }
-.footer-links a:hover { color: var(--text-main); }
+    swap(indexOne, indexTwo) {
+        const temp = this.heap[indexOne];
+        this.heap[indexOne] = this.heap[indexTwo];
+        this.heap[indexTwo] = temp;
+    }
 
-/* ============================================ */
-/* LOGIN PAGE STYLES                            */
-/* ============================================ */
+    peek() {
+        if (this.heap.length === 0) return null;
+        return this.heap[0];
+    }
 
-.login-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 10000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, #0b0f19 0%, #1a1040 30%, #0f172a 60%, #1e0a2e 100%);
-    overflow: hidden;
-}
-.login-overlay::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle at 30% 40%, rgba(218, 49, 57, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 70% 60%, rgba(99, 102, 241, 0.06) 0%, transparent 50%),
-                radial-gradient(circle at 50% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 40%);
-    animation: loginBgShift 15s ease-in-out infinite alternate;
-}
-@keyframes loginBgShift {
-    0%   { transform: translate(0, 0) rotate(0deg); }
-    50%  { transform: translate(-3%, 2%) rotate(1deg); }
-    100% { transform: translate(2%, -2%) rotate(-1deg); }
-}
+    insert(patient) {
+        this.heap.push(patient);
+        this.heapifyUp();
+    }
 
-/* Floating Particles */
-.login-particles {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 0;
-}
-.login-particle {
-    position: absolute;
-    border-radius: 50%;
-    opacity: 0;
-    animation: particleFloat linear infinite;
-}
-@keyframes particleFloat {
-    0%   { opacity: 0; transform: translateY(100vh) scale(0); }
-    10%  { opacity: 1; }
-    90%  { opacity: 1; }
-    100% { opacity: 0; transform: translateY(-10vh) scale(1); }
+    extractMin() {
+        if (this.heap.length === 0) return null;
+        if (this.heap.length === 1) return this.heap.pop();
+        
+        const min = this.heap[0];
+        this.heap[0] = this.heap.pop();
+        this.heapifyDown();
+        return min;
+    }
+
+    removeNodeById(id) {
+        const index = this.heap.findIndex(p => p.id === id);
+        if (index === -1) return false;
+        
+        if (index === this.heap.length - 1) {
+            this.heap.pop();
+            return true;
+        }
+
+        this.swap(index, this.heap.length - 1);
+        this.heap.pop();
+        
+        if (this.hasParent(index) && this.compare(this.heap[index], this.parent(index)) < 0) {
+            this.heapifyUp(index);
+        } else {
+            this.heapifyDown(index);
+        }
+        return true;
+    }
+
+    compare(a, b) {
+        if (!a || !b) return 0;
+        if (a.triageLevel !== b.triageLevel) {
+            return a.triageLevel - b.triageLevel;
+        }
+        return a.timestamp - b.timestamp;
+    }
+
+    heapifyUp(index = this.heap.length - 1) {
+        while (this.hasParent(index) && this.compare(this.heap[index], this.parent(index)) < 0) {
+            this.swap(this.getParentIndex(index), index);
+            index = this.getParentIndex(index);
+        }
+    }
+
+    heapifyDown(index = 0) {
+        while (this.hasLeftChild(index)) {
+            let smallerChildIndex = this.getLeftChildIndex(index);
+            if (this.hasRightChild(index) && this.compare(this.rightChild(index), this.leftChild(index)) < 0) {
+                smallerChildIndex = this.getRightChildIndex(index);
+            }
+
+            if (this.compare(this.heap[index], this.heap[smallerChildIndex]) < 0) {
+                break;
+            } else {
+                this.swap(index, smallerChildIndex);
+            }
+            index = smallerChildIndex;
+        }
+    }
+
+    getSortedQueue() {
+        const tempHeap = new MinHeap();
+        tempHeap.heap = [...this.heap];
+        const result = [];
+        
+        while (tempHeap.heap.length > 0) {
+            result.push(tempHeap.extractMin());
+        }
+        return result;
+    }
 }
 
-/* Login Container */
-.login-container {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    max-width: 900px;
-    width: 90%;
-    border-radius: 24px;
-    overflow: hidden;
-    box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5),
-                0 0 0 1px rgba(255, 255, 255, 0.05),
-                inset 0 0 60px rgba(255, 255, 255, 0.02);
-    animation: loginCardEntry 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-@keyframes loginCardEntry {
-    from { opacity: 0; transform: translateY(40px) scale(0.95); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
-}
+// =============================================
+// FIREBASE REALTIME DATABASE INTEGRATION
+// Data syncs across ALL devices in real-time
+// =============================================
 
-/* Left: Login Card */
-.login-card {
-    flex: 1;
-    background: rgba(15, 23, 42, 0.85);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    padding: 3rem 2.5rem;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    border-right: 1px solid rgba(255, 255, 255, 0.06);
-}
+const erQueue = new MinHeap();
+const actionStack = []; // for undo (local only — undo is per-device)
 
-.login-header {
-    text-align: center;
-    margin-bottom: 2rem;
-}
-.login-logo {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
-}
-.login-logo-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
-    background: linear-gradient(135deg, var(--primary-red), #ff6b6b);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    color: white;
-    box-shadow: 0 8px 24px rgba(218, 49, 57, 0.3);
-    animation: iconPulse 3s ease-in-out infinite;
-}
-@keyframes iconPulse {
-    0%, 100% { box-shadow: 0 8px 24px rgba(218, 49, 57, 0.3); }
-    50%      { box-shadow: 0 8px 32px rgba(218, 49, 57, 0.5); }
-}
-.login-logo-text {
-    font-family: 'Outfit', sans-serif;
-    font-size: 2rem;
-    font-weight: 800;
-    color: white;
-    letter-spacing: -0.5px;
-}
-.login-subtitle {
-    font-size: 0.8rem;
-    color: #94a3b8;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    font-weight: 600;
-}
+// Firebase database references
+const db = firebase.database();
+const patientsRef = db.ref('erqueue/patients');
+const connectedRef = db.ref('.info/connected');
 
-/* Role Selector */
-.login-role-selector {
-    display: flex;
-    gap: 0.75rem;
-    margin-bottom: 1.75rem;
-}
-.login-role-selector input[type="radio"] {
-    display: none;
-}
-.role-option {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.85rem 1rem;
-    border-radius: 12px;
-    border: 2px solid rgba(255, 255, 255, 0.08);
-    background: rgba(255, 255, 255, 0.03);
-    color: #94a3b8;
-    font-size: 0.9rem;
-    font-weight: 600;
-    font-family: 'Outfit', sans-serif;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.role-option:hover {
-    border-color: rgba(218, 49, 57, 0.3);
-    background: rgba(218, 49, 57, 0.05);
-    color: #e2e8f0;
-}
-.role-option i {
-    font-size: 1.25rem;
-    transition: transform 0.3s ease;
-}
-.login-role-selector input[type="radio"]:checked + .role-option {
-    border-color: var(--primary-red);
-    background: rgba(218, 49, 57, 0.1);
-    color: white;
-    box-shadow: 0 4px 20px rgba(218, 49, 57, 0.15),
-                inset 0 0 20px rgba(218, 49, 57, 0.05);
-}
-.login-role-selector input[type="radio"]:checked + .role-option i {
-    transform: scale(1.15);
-    color: var(--primary-red);
-}
+document.addEventListener("DOMContentLoaded", () => {
+    const form = document.getElementById("admitForm");
+    const queueList = document.getElementById("queueList");
+    const queueCount = document.getElementById("queueCount");
+    const btnUndo = document.getElementById("btnUndo");
+    const btnClear = document.getElementById("btnClear");
+    const syncBadge = document.getElementById("syncStatus");
 
-/* Login Fields */
-.login-field {
-    margin-bottom: 1.25rem;
-}
-.login-field label {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: #94a3b8;
-    margin-bottom: 0.5rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-.login-field label i {
-    font-size: 0.9rem;
-}
-.login-field input {
-    width: 100%;
-    padding: 0.85rem 1rem;
-    border-radius: 10px;
-    border: 2px solid rgba(255, 255, 255, 0.08);
-    background: rgba(255, 255, 255, 0.04);
-    color: white;
-    font-family: 'Inter', sans-serif;
-    font-size: 0.95rem;
-    transition: all 0.3s ease;
-    outline: none;
-}
-.login-field input::placeholder {
-    color: #475569;
-}
-.login-field input:focus {
-    border-color: var(--primary-red);
-    background: rgba(218, 49, 57, 0.04);
-    box-shadow: 0 0 0 4px rgba(218, 49, 57, 0.08);
-}
+    // ---- Connection Status Monitor ----
+    connectedRef.on('value', (snap) => {
+        if (snap.val() === true) {
+            syncBadge.innerHTML = '<i class="ri-wifi-line"></i> Live Sync';
+            syncBadge.className = 'sync-badge online';
+        } else {
+            syncBadge.innerHTML = '<i class="ri-wifi-off-line"></i> Offline';
+            syncBadge.className = 'sync-badge offline';
+        }
+    });
 
-/* Password Toggle */
-.password-wrapper {
-    position: relative;
-}
-.password-wrapper input {
-    padding-right: 3rem;
-}
-.toggle-password {
-    position: absolute;
-    right: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    color: #64748b;
-    cursor: pointer;
-    font-size: 1.1rem;
-    padding: 0.25rem;
-    transition: color 0.2s;
-}
-.toggle-password:hover {
-    color: #94a3b8;
-}
+    // ---- Save to Firebase Cloud ----
+    const saveToFirebase = () => {
+        patientsRef.set(erQueue.heap).catch(err => {
+            console.error("Firebase write error:", err);
+            // Fallback: save to localStorage
+            localStorage.setItem('erQueuePatients', JSON.stringify(erQueue.heap));
+        });
+    };
 
-/* Error Message */
-.login-error {
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    border-radius: 10px;
-    padding: 0.75rem 1rem;
-    margin-bottom: 1.25rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: #fca5a5;
-    font-size: 0.85rem;
-    font-weight: 500;
-    animation: shakeError 0.5s ease;
-}
-@keyframes shakeError {
-    0%, 100% { transform: translateX(0); }
-    20%  { transform: translateX(-8px); }
-    40%  { transform: translateX(8px); }
-    60%  { transform: translateX(-4px); }
-    80%  { transform: translateX(4px); }
-}
+    // ---- Helper Functions ----
+    const getTriageClass = (level) => {
+        switch(level) {
+            case 1: return 'critical';
+            case 2: return 'severe';
+            case 3: return 'moderate';
+            case 4: return 'minor';
+            default: return 'minor';
+        }
+    };
 
-/* Login Button */
-.login-btn {
-    width: 100%;
-    padding: 0.95rem;
-    border-radius: 12px;
-    border: none;
-    background: linear-gradient(135deg, var(--primary-red), #e84856);
-    color: white;
-    font-family: 'Outfit', sans-serif;
-    font-size: 1.05rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-    letter-spacing: 0.5px;
-}
-.login-btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
-    transition: left 0.5s ease;
-}
-.login-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 32px rgba(218, 49, 57, 0.35);
-}
-.login-btn:hover::before {
-    left: 100%;
-}
-.login-btn:active {
-    transform: translateY(0);
-}
-.login-btn-loader i {
-    animation: spin 1s linear infinite;
-}
+    const getTriageText = (level) => {
+        switch(level) {
+            case 1: return 'CRITICAL';
+            case 2: return 'SEVERE';
+            case 3: return 'MODERATE';
+            case 4: return 'MINOR';
+            default: return 'UNKNOWN';
+        }
+    };
 
-/* Login Footer */
-.login-footer {
-    text-align: center;
-    margin-top: 1.5rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-}
-.login-footer p {
-    font-size: 0.75rem;
-    color: #475569;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.4rem;
-}
+    // ---- Render Queue (UI only, no saving) ----
+    const renderQueue = () => {
+        const sorted = erQueue.getSortedQueue();
+        queueCount.innerText = `${sorted.length} Patient${sorted.length !== 1 ? 's' : ''} Waiting`;
 
-/* Auth Tabs (Sign In / Register) */
-.auth-tabs {
-    display: flex;
-    gap: 0;
-    margin-bottom: 1.5rem;
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: 12px;
-    padding: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-}
-.auth-tab {
-    flex: 1;
-    padding: 0.7rem 1rem;
-    border: none;
-    background: transparent;
-    color: #64748b;
-    font-family: 'Outfit', sans-serif;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    border-radius: 10px;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.4rem;
-}
-.auth-tab:hover {
-    color: #94a3b8;
-}
-.auth-tab.active {
-    background: rgba(218, 49, 57, 0.12);
-    color: white;
-    box-shadow: 0 2px 12px rgba(218, 49, 57, 0.15);
-}
-.auth-tab.active i {
-    color: var(--primary-red);
-}
+        if (sorted.length === 0) {
+            queueList.innerHTML = `
+                <div class="empty-state">
+                    <i class="ri-inbox-archive-line" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                    <p>No patients in the current queue.</p>
+                </div>
+            `;
+            return;
+        }
 
-/* Auth Panels (show/hide) */
-.auth-panel {
-    display: none;
-}
-.auth-panel.active {
-    display: block;
-    animation: panelFadeIn 0.35s ease forwards;
-}
-@keyframes panelFadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
+        queueList.innerHTML = '';
+        sorted.forEach((p, index) => {
+            const div = document.createElement("div");
+            div.className = "queue-item";
+            div.innerHTML = `
+                <div class="qi-index">#${index + 1}</div>
+                <div class="qi-details">
+                    <div class="qi-name">${p.name} <span class="badge-triage ${getTriageClass(p.triageLevel)}" style="margin-left:10px; font-size: 0.65rem;">${getTriageText(p.triageLevel)}</span></div>
+                    <div class="qi-cond">${p.age} yrs • ${p.condition} • ID: ${p.id}</div>
+                </div>
+            `;
+            queueList.appendChild(div);
+        });
+    };
 
-/* Success message variant */
-.login-error.success {
-    background: rgba(22, 163, 74, 0.1);
-    border-color: rgba(22, 163, 74, 0.3);
-    color: #86efac;
-}
+    // ================================================
+    // REAL-TIME LISTENER — This is the magic!
+    // Fires whenever data changes in Firebase (from ANY device).
+    // All connected browsers see the update instantly.
+    // ================================================
+    patientsRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            // Firebase may return an object or array — normalize to array
+            erQueue.heap = Array.isArray(data) ? data : Object.values(data);
+        } else {
+            erQueue.heap = [];
+        }
+        renderQueue();
+    }, (error) => {
+        console.error("Firebase read error:", error);
+        // Fallback: try loading from localStorage
+        const saved = localStorage.getItem('erQueuePatients');
+        if (saved) {
+            try {
+                erQueue.heap = JSON.parse(saved);
+                renderQueue();
+            } catch (e) {
+                console.error("Error parsing saved patients");
+            }
+        }
+    });
 
-/* Right: Info Panel */
-.login-info-panel {
-    flex: 1;
-    background: linear-gradient(135deg, rgba(218, 49, 57, 0.08), rgba(99, 102, 241, 0.05));
-    padding: 3rem 2.5rem;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    position: relative;
-    overflow: hidden;
-}
-.login-info-panel::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    right: -50%;
-    width: 150%;
-    height: 150%;
-    background: radial-gradient(circle, rgba(218, 49, 57, 0.06) 0%, transparent 60%);
-    animation: loginBgShift 20s ease-in-out infinite alternate-reverse;
-}
-.login-info-content {
-    position: relative;
-    z-index: 1;
-}
-.login-info-content h2 {
-    font-size: 2.25rem;
-    color: white;
-    margin-bottom: 1rem;
-    line-height: 1.2;
-    font-family: 'Outfit', sans-serif;
-}
-.login-info-content > p {
-    color: #94a3b8;
-    font-size: 1rem;
-    line-height: 1.6;
-    margin-bottom: 2rem;
-}
-.login-features {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-.login-feature {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    color: #cbd5e1;
-    font-size: 0.9rem;
-    font-weight: 500;
-}
-.login-feature i {
-    font-size: 1.25rem;
-    color: var(--primary-red);
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    background: rgba(218, 49, 57, 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-.login-info-pulse {
-    position: absolute;
-    bottom: 2rem;
-    left: 2rem;
-    right: 2rem;
-    height: 40px;
-    opacity: 0.5;
-}
-.login-info-pulse svg {
-    width: 100%;
-    height: 100%;
-}
+    // ---- Form Submit: Add Patient ----
+    form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const name = document.getElementById("pName").value;
+        const age = document.getElementById("pAge").value;
+        const triage = document.getElementById("pTriage").value;
+        const condition = document.getElementById("pCondition").value;
 
-/* Login overlay hidden state */
-.login-overlay.hidden {
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.6s ease;
-}
+        const p = new PatientNode(name, age, triage, condition);
+        erQueue.insert(p);
+        actionStack.push({ type: 'ADD', patientId: p.id });
+        
+        form.reset();
+        saveToFirebase(); // Triggers real-time update on ALL devices
+    });
 
-/* ============================================ */
-/* HEADER USER BADGE & LOGOUT                   */
-/* ============================================ */
-.header-right-group {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-.user-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    background: rgba(218, 49, 57, 0.12);
-    color: #fca5a5;
-    font-size: 0.75rem;
-    font-weight: 700;
-    padding: 0.35rem 0.85rem;
-    border-radius: 20px;
-    font-family: 'Inter', sans-serif;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    border: 1px solid rgba(218, 49, 57, 0.25);
-}
-.user-badge i {
-    font-size: 0.9rem;
-}
-.btn-logout {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: 0.85rem;
-    padding: 0.5rem 1.2rem;
-}
-.btn-logout:hover {
-    background: var(--primary-red) !important;
-    border-color: var(--primary-red);
-}
+    // ---- Undo Last Action ----
+    btnUndo.addEventListener("click", () => {
+        if (actionStack.length === 0) return;
+        const lastAction = actionStack.pop();
+        if (lastAction.type === 'ADD') {
+            erQueue.removeNodeById(lastAction.patientId);
+            saveToFirebase();
+        }
+    });
 
-/* App Wrapper transition */
-.app-wrapper {
-    animation: appFadeIn 0.5s ease forwards;
-}
-@keyframes appFadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
-}
-
-@media (max-width: 900px) {
-    .hero-content { flex-direction: column; text-align: center; gap: 3rem;}
-    .hero-left { margin: 0 auto; }
-    .cn-cards { flex-direction: column; }
-    .critical-nature .container, .sim-container, .ta-container { flex-direction: column; }
-    .header { padding: 1.5rem;}
-    .nav-links { display: none; }
-    .alg-grid { grid-template-columns: 1fr 1fr; }
-    .login-container { flex-direction: column; max-height: 95vh; overflow-y: auto; }
-    .login-info-panel { display: none; }
-    .login-card { padding: 2rem 1.5rem; }
-}
-@media (max-width: 600px) {
-    .alg-grid { grid-template-columns: 1fr; }
-    .login-role-selector { flex-direction: column; }
-}
+    // ---- Clear All ----
+    btnClear.addEventListener("click", () => {
+        erQueue.heap = [];
+        actionStack.length = 0;
+        saveToFirebase();
+    });
+});
