@@ -64,7 +64,6 @@ class MinHeap {
         this.swap(index, this.heap.length - 1);
         this.heap.pop();
         
-        // Adjust
         if (this.hasParent(index) && this.compare(this.heap[index], this.parent(index)) < 0) {
             this.heapifyUp(index);
         } else {
@@ -73,8 +72,6 @@ class MinHeap {
         return true;
     }
 
-    // Compare logic: Lower triage level is higher priority. 
-    // If same, older timestamp is higher priority.
     compare(a, b) {
         if (!a || !b) return 0;
         if (a.triageLevel !== b.triageLevel) {
@@ -106,10 +103,9 @@ class MinHeap {
         }
     }
 
-    // Return a sorted array without modifying the actual heap
     getSortedQueue() {
         const tempHeap = new MinHeap();
-        tempHeap.heap = [...this.heap]; // shallow clone is fine here since nodes are objects 
+        tempHeap.heap = [...this.heap];
         const result = [];
         
         while (tempHeap.heap.length > 0) {
@@ -119,9 +115,18 @@ class MinHeap {
     }
 }
 
-// Global scope
+// =============================================
+// FIREBASE REALTIME DATABASE INTEGRATION
+// Data syncs across ALL devices in real-time
+// =============================================
+
 const erQueue = new MinHeap();
-const actionStack = []; // for undo
+const actionStack = []; // for undo (local only — undo is per-device)
+
+// Firebase database references
+const db = firebase.database();
+const patientsRef = db.ref('erqueue/patients');
+const connectedRef = db.ref('.info/connected');
 
 document.addEventListener("DOMContentLoaded", () => {
     const form = document.getElementById("admitForm");
@@ -129,22 +134,29 @@ document.addEventListener("DOMContentLoaded", () => {
     const queueCount = document.getElementById("queueCount");
     const btnUndo = document.getElementById("btnUndo");
     const btnClear = document.getElementById("btnClear");
+    const syncBadge = document.getElementById("syncStatus");
 
-    const loadData = () => {
-        const saved = localStorage.getItem('erQueuePatients');
-        if (saved) {
-            try {
-                erQueue.heap = JSON.parse(saved);
-            } catch (e) {
-                console.error("Error parsing saved patients");
-            }
+    // ---- Connection Status Monitor ----
+    connectedRef.on('value', (snap) => {
+        if (snap.val() === true) {
+            syncBadge.innerHTML = '<i class="ri-wifi-line"></i> Live Sync';
+            syncBadge.className = 'sync-badge online';
+        } else {
+            syncBadge.innerHTML = '<i class="ri-wifi-off-line"></i> Offline';
+            syncBadge.className = 'sync-badge offline';
         }
+    });
+
+    // ---- Save to Firebase Cloud ----
+    const saveToFirebase = () => {
+        patientsRef.set(erQueue.heap).catch(err => {
+            console.error("Firebase write error:", err);
+            // Fallback: save to localStorage
+            localStorage.setItem('erQueuePatients', JSON.stringify(erQueue.heap));
+        });
     };
 
-    const saveData = () => {
-        localStorage.setItem('erQueuePatients', JSON.stringify(erQueue.heap));
-    };
-
+    // ---- Helper Functions ----
     const getTriageClass = (level) => {
         switch(level) {
             case 1: return 'critical';
@@ -165,8 +177,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
-    const updateUI = () => {
-        saveData(); // Save state to localStorage whenever UI updates
+    // ---- Render Queue (UI only, no saving) ----
+    const renderQueue = () => {
         const sorted = erQueue.getSortedQueue();
         queueCount.innerText = `${sorted.length} Patient${sorted.length !== 1 ? 's' : ''} Waiting`;
 
@@ -195,6 +207,35 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     };
 
+    // ================================================
+    // REAL-TIME LISTENER — This is the magic!
+    // Fires whenever data changes in Firebase (from ANY device).
+    // All connected browsers see the update instantly.
+    // ================================================
+    patientsRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            // Firebase may return an object or array — normalize to array
+            erQueue.heap = Array.isArray(data) ? data : Object.values(data);
+        } else {
+            erQueue.heap = [];
+        }
+        renderQueue();
+    }, (error) => {
+        console.error("Firebase read error:", error);
+        // Fallback: try loading from localStorage
+        const saved = localStorage.getItem('erQueuePatients');
+        if (saved) {
+            try {
+                erQueue.heap = JSON.parse(saved);
+                renderQueue();
+            } catch (e) {
+                console.error("Error parsing saved patients");
+            }
+        }
+    });
+
+    // ---- Form Submit: Add Patient ----
     form.addEventListener("submit", (e) => {
         e.preventDefault();
         const name = document.getElementById("pName").value;
@@ -207,25 +248,23 @@ document.addEventListener("DOMContentLoaded", () => {
         actionStack.push({ type: 'ADD', patientId: p.id });
         
         form.reset();
-        updateUI();
+        saveToFirebase(); // Triggers real-time update on ALL devices
     });
 
+    // ---- Undo Last Action ----
     btnUndo.addEventListener("click", () => {
         if (actionStack.length === 0) return;
         const lastAction = actionStack.pop();
         if (lastAction.type === 'ADD') {
             erQueue.removeNodeById(lastAction.patientId);
-            updateUI();
+            saveToFirebase();
         }
     });
 
+    // ---- Clear All ----
     btnClear.addEventListener("click", () => {
         erQueue.heap = [];
         actionStack.length = 0;
-        updateUI();
+        saveToFirebase();
     });
-
-    // Load data from localStorage on initialization
-    loadData();
-    updateUI();
 });
