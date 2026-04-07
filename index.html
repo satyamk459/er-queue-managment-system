@@ -18,6 +18,7 @@
     <header class="header">
         <div class="logo">
             <span class="logo-red">ER</span>QUEUE
+            <span id="syncStatus" class="sync-badge connecting"><i class="ri-loader-4-line"></i> Connecting...</span>
         </div>
         <nav class="nav-links">
             <a href="#home" class="active">Home</a>
@@ -49,7 +50,7 @@
                     </div>
                     <div class="credit-box">
                         <span class="credit-title">MENTORED BY</span>
-                        <span class="credit-name">Mr. Aman Prasad</span>
+                        <span class="credit-name">Mr. Aman Kumar</span>
                         <span class="credit-sub">Dept. Computer Science</span>
                     </div>
                 </div>
@@ -106,8 +107,7 @@
                 </div>
             </div>
             <div class="cn-right">
-                <img src="doctor_tablet_1774882013907.png"
-                    alt="Doctor looking at tablet" class="doctor-img">
+                <img src="doctor_tablet_1774882013907.png" alt="Doctor looking at tablet" class="doctor-img">
             </div>
         </div>
     </section>
@@ -362,7 +362,7 @@
         <div class="container footer-content">
             <div class="footer-logo">
                 <span class="logo-red">ER</span>QUEUE
-                <p class="copyright">© 2024 Satyam Kumar Thakur | NIET | DSA Project</p>
+                <p class="copyright">© 2024 Satyam Kumar 'Nemo' | BIT | DSA Project</p>
             </div>
             <div class="footer-links">
                 <a href="#">Course B.E.</a>
@@ -373,6 +373,27 @@
         </div>
     </footer>
 
+    <!-- Firebase SDK (CDN - no npm required) -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+    <script>
+        // ============================================
+        // FIREBASE CONFIG — VERIFY THESE VALUES!
+        // Go to Firebase Console > Project Settings > Your Apps
+        // to confirm these match your project.
+        // ============================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBmJF_mlg4yXwh4IUobPWw3faL9rb8WSxU",
+            authDomain: "er-queue-system.firebaseapp.com",
+            databaseURL: "https://er-queue-system-default-rtdb.firebaseio.com",
+            projectId: "er-queue-system",
+            storageBucket: "er-queue-system.firebasestorage.app",
+            messagingSenderId: "571308579301",
+            appId: "1:571308579301:web:bda877aebcaf4505bd770c",
+            measurementId: "G-T426REEG46"
+        };
+        firebase.initializeApp(firebaseConfig);
+    </script>
     <script src="script.js"></script>
 </body>
 
